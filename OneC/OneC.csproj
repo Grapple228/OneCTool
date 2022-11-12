@@ -11,4 +11,8 @@
       <PackageReference Include="Brom" Version="1.0.1-beta08" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Classes\" />
+    </ItemGroup>
+
 </Project>

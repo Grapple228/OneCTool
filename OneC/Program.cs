@@ -1,26 +1,23 @@
 ﻿using ITworks.Brom;
-using ITworks.Brom.Types;
-using ITworks.Brom.Metadata;
-using ITworks.Brom.SOAP;
-using System.Xml.Linq;
+using OneC.Classes;
 
+namespace OneC;
 
-namespace Program;
-
-static class Program
+internal static class Program
 {
 	public static БромКлиент client;
-    public static List<Student> students;
-    public static List<Employee> employees;
-    public static List<Group> groups;
-    public static List<Company> companies;
-    public static List<Post> posts;
-    public static List<Department> departments;
+    private static List<Student> students;
+    private static List<Employee> employees;
+    private static List<Group> groups;
+    private static List<Company> companies;
+    private static List<Post> posts;
+    private static List<Department> departments;
     public static void Main(string[] args)
 	{
-		const string PATH = @"C:\Users\Green Apple\Desktop\Data\";
+        // Расположение плоских файлов
+		const string path = @"C:\Users\Green Apple\Desktop\Data\";
 
-        // Подключение к 1с
+        // Подключение к 1с через IIS
         client = new БромКлиент(@"
         	Публикация		= http://localhost/Buh/;
         	Пользователь	= bromuser;
@@ -35,7 +32,7 @@ static class Program
         posts = new();
 
         // Заполнение студентов
-        string[] studentsFromFile = File.ReadAllLines($"{PATH}Студенты.csv");
+        string[] studentsFromFile = File.ReadAllLines($"{path}Студенты.csv");
         for (int i = 1; i < studentsFromFile.Length; i++)
         {
 	        string[] studentData = studentsFromFile[i].Split(';');
@@ -61,7 +58,7 @@ static class Program
         }
 
         // Заполнение сотрудников
-        string[] employeesFromFile = File.ReadAllLines($"{PATH}Сотрудники.csv");
+        string[] employeesFromFile = File.ReadAllLines($"{path}Сотрудники.csv");
         for (int i = 1; i < employeesFromFile.Length; i++)
         {
             string[] employeeData = employeesFromFile[i].Split(';');
@@ -131,280 +128,6 @@ static class Program
         foreach (var employee in employees)
         {
             employee.AddTo1C();
-        }
-    }
-}
-
-interface IOneCActions
-{
-    public Ссылка Link { get; set; }
-    public void AddTo1C();
-}
-
-class Post : IOneCActions
-{
-    public string Name { get; set; }
-    public Ссылка Link { get; set; }
-    public void AddTo1C()
-    {
-        БромКлиент client = Program.client;
-        Запрос запрос = client.СоздатьЗапрос(@"
-	    ВЫБРАТЬ
-		    ДолжностьУ.Ссылка КАК Ссылка
-	    ИЗ
-		    Справочник.Должность КАК ДолжностьУ
-	    ГДЕ
-		    ДолжностьУ.Наименование = &наименование");
-        запрос.УстановитьПараметр("наименование", Name);
-        start:
-        ТаблицаЗначений результат = (ТаблицаЗначений)запрос.Выполнить();
-        if (результат.Count == 0)
-        {
-            client.Выполнить(@"
-                результат = Справочники.Должность.СоздатьЭлемент();
-                результат.Наименование=Параметр;
-                результат.Записать();
-            ", Name);
-            goto start;
-        }
-        else
-        {
-            foreach (СтрокаТаблицыЗначений a in результат)
-            {
-                foreach (KeyValuePair<string, object> b in a)
-                {
-                    Link = (Ссылка)b.Value;
-                }
-            }
-        }
-    }
-}
-class Department : IOneCActions
-{
-    public string Name { get; set; }
-    public Ссылка Link { get; set; }
-    public void AddTo1C()
-    {
-        БромКлиент client = Program.client;
-        Запрос запрос = client.СоздатьЗапрос(@"
-	    ВЫБРАТЬ
-		    Подразделение.Ссылка КАК Ссылка
-	    ИЗ
-		    Справочник.Подразделения КАК Подразделение
-	    ГДЕ
-		    Подразделение.Наименование = &наименование");
-        запрос.УстановитьПараметр("наименование", Name);
-        start:
-        ТаблицаЗначений результат = (ТаблицаЗначений)запрос.Выполнить();
-        if (результат.Count == 0)
-        {
-            client.Выполнить(@"
-                результат = Справочники.Подразделения.СоздатьЭлемент();
-                результат.Наименование=Параметр;
-                результат.Записать();
-            ", Name);
-            goto start;
-        }
-        else
-        {
-            foreach (СтрокаТаблицыЗначений a in результат)
-            {
-                foreach (KeyValuePair<string, object> b in a)
-                {
-                    Link = (Ссылка)b.Value;
-                }
-            }
-        }
-    }
-}
-class Company : IOneCActions
-{
-    public string Name { get; set; }
-    public Ссылка Link { get; set; }
-    public void AddTo1C()
-    {
-        БромКлиент client = Program.client;
-        Запрос запрос = client.СоздатьЗапрос(@"
-	    ВЫБРАТЬ
-		    Компания.Ссылка КАК Ссылка
-	    ИЗ
-		    Справочник.Компании КАК Компания
-	    ГДЕ
-		    Компания.Наименование = &наименование");
-        запрос.УстановитьПараметр("наименование", Name);
-        start:
-        ТаблицаЗначений результат = (ТаблицаЗначений)запрос.Выполнить();
-        if (результат.Count == 0)
-        {
-            client.Выполнить(@"
-                результат = Справочники.Компании.СоздатьЭлемент();
-                результат.Наименование=Параметр;
-                результат.Записать();
-            ", Name);
-            goto start;
-        }
-        else
-        {
-            foreach (СтрокаТаблицыЗначений a in результат)
-            {
-                foreach (KeyValuePair<string, object> b in a)
-                {
-                    Link = (Ссылка)b.Value;
-                }
-            }
-        }
-    }
-}
-
-class Employee : IOneCActions
-{
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Patronymic { get; set; }
-    public string Gender { get; set; }
-    public string TabNumber { get; set; }
-    public Company Company { get; set; }
-    public Department Department { get; set; }
-    public Post Post { get; set; }
-    public Ссылка Link { get; set; }
-    public void AddTo1C()
-    {
-        БромКлиент client = Program.client;
-        Запрос запрос = client.СоздатьЗапрос(@"
-	    ВЫБРАТЬ
-		    Сотрудник.Ссылка КАК Ссылка
-	    ИЗ
-		    Справочник.СотрудникиКолледжа КАК Сотрудник
-	    ГДЕ
-		    Сотрудник.ТабельныйНомер = &ТабельныйНомер");
-        запрос.УстановитьПараметр("ТабельныйНомер", $"{TabNumber}");
-        start:
-        ТаблицаЗначений результат = (ТаблицаЗначений)запрос.Выполнить();
-        if (результат.Count == 0)
-        {
-            client.Выполнить(
-                "результат = Справочники.СотрудникиКолледжа.СоздатьЭлемент();" +
-                "результат.Наименование=Параметр.Фамилия+\" \"+Параметр.Имя+\" \"+Параметр.Отчество;" +
-                "результат.Имя = Параметр.Имя;" +
-                "результат.Фамилия = Параметр.Фамилия;" +
-                "результат.Отчество = Параметр.Отчество;" +
-                "результат.ТабельныйНомер = Параметр.ТабельныйНомер;" +
-                "результат.Компания=Справочники.Компании.НайтиПоНаименованию(Параметр.Компания);" +
-                "результат.Подразделение=Справочники.Подразделения.НайтиПоНаименованию(Параметр.Подразделение);" +
-                "результат.Должность=Справочники.Должность.НайтиПоНаименованию(Параметр.Должность);" +
-                "результат.Пол=Параметр.Пол;" +
-                "результат.Записать();",
-                new Структура("Имя,Фамилия,Отчество,Пол,Компания,Подразделение,Должность,ТабельныйНомер", new object[] { FirstName, LastName, Patronymic, Gender, Company.Name, Department.Name, Post.Name,TabNumber }));
-            goto start;
-        }
-        else
-        {
-            foreach (СтрокаТаблицыЗначений a in результат)
-            {
-                foreach (KeyValuePair<string, object> b in a)
-                {
-                    Link = (Ссылка)b.Value;
-                }
-            }
-        }
-
-    }
-}
-
-class Student : IOneCActions
-{
-    public string FirstName { get; set; }
-    public string LastName { get; set; }
-    public string Patronymic { get; set; }
-    public string Gender { get; set; }
-    public string TabNumber { get; set; }
-    public Ссылка Link { get; set; }
-    public string Type { get; set; }
-    public Group Group { get; set; }
-
-    public void AddTo1C()
-    {
-        БромКлиент client = Program.client;
-        Запрос запрос = client.СоздатьЗапрос(@"
-	    ВЫБРАТЬ
-		    Студент.Ссылка КАК Ссылка
-	    ИЗ
-		    Справочник.Студенты КАК Студент
-	    ГДЕ
-		    Студент.Наименование = &наименование");
-        запрос.УстановитьПараметр("наименование", $"{LastName.Trim()} {FirstName.Trim()} {Patronymic.Trim()}");
-    start:
-        ТаблицаЗначений результат = (ТаблицаЗначений)запрос.Выполнить();
-        if (результат.Count == 0)
-        {
-            client.Выполнить(
-                "результат = Справочники.Студенты.СоздатьЭлемент();" +
-                "результат.Наименование=Параметр.Фамилия+\" \"+Параметр.Имя+\" \"+Параметр.Отчество;" +
-                "результат.Имя = Параметр.Имя;" +
-                "результат.Фамилия = Параметр.Фамилия;" +
-                "результат.Отчество = Параметр.Отчество;" +
-                "результат.ТабельныйНомер = Параметр.ТабельныйНомер;" +
-                "результат.Группа=Справочники.Группы.НайтиПоНаименованию(Параметр.Группа);" +
-                "результат.Пол=Параметр.Пол;" +
-                "результат.Тип=Параметр.Тип;" +
-                "результат.Записать();",
-                new Структура("Имя,Фамилия,Отчество,Пол,Тип,Группа,ТабельныйНомер", new object[] { FirstName, LastName, Patronymic, Gender, Type, Group.Name, TabNumber }));
-            goto start;
-        }
-        else
-        {
-            foreach (СтрокаТаблицыЗначений a in результат)
-            {
-                foreach (KeyValuePair<string, object> b in a)
-                {
-                    Link = (Ссылка)b.Value;
-                }
-            }
-        }
-    }
-}
-
-class Group : IOneCActions
-{
-    public string Name { get; set; }
-    public Ссылка Link { get; set; }
-
-    public Group(string name)
-    {
-        Name = name;
-    }
-
-    public void AddTo1C()
-    {
-        БромКлиент client = Program.client;
-        Запрос запрос = client.СоздатьЗапрос(@"
-	    ВЫБРАТЬ
-		    Группа.Ссылка КАК Ссылка
-	    ИЗ
-		    Справочник.Группы КАК Группа
-	    ГДЕ
-		    Группа.Наименование = &наименование");
-        запрос.УстановитьПараметр("наименование", Name);
-    start:
-        ТаблицаЗначений результат = (ТаблицаЗначений)запрос.Выполнить();
-        if (результат.Count == 0)
-        {
-            client.Выполнить(@"
-                результат = Справочники.Группы.СоздатьЭлемент();
-                результат.Наименование=Параметр;
-                результат.Записать();
-            ", Name);
-            goto start;
-        }
-        else
-        {
-            foreach (СтрокаТаблицыЗначений a in результат)
-            {
-                foreach (KeyValuePair<string, object> b in a)
-                {
-                    Link = (Ссылка)b.Value;
-                }
-            }
         }
     }
 }
